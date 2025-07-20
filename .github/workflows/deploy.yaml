@@ -1,0 +1,204 @@
+# deploy.yaml
+# Copyright (c) 2025 Affinity7 Consulting Ltd
+# SPDX-License-Identifier: MIT
+#
+# This workflow is licensed under the MIT License.
+# See https://github.com/gitopsmanager/k8s-deploy/blob/main/LICENSE for details.
+
+# .github/workflows/deploy.yaml
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      application:
+        required: true
+        type: string
+      namespace:
+        required: true
+        type: string
+      repo:
+        required: true
+        type: string
+      repo_path:
+        required: true
+        type: string
+      repo_commit_id:
+        required: false
+        type: string
+      branch_name:
+        required: false
+        type: string
+        default: "main"
+      overlay_dir:
+        required: true
+        type: string
+      image_tag:
+        required: false
+        type: string
+      image_base_name:
+        required: false
+        type: string
+      image_base_names:
+        required: false
+        type: array
+      kustomize_version:
+        required: false
+        type: string
+        default: "5.0.1"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    outputs:
+      cd_path: ${{ steps.cdpath.outputs.cd_path }}
+    steps:
+  
+
+      - name: Checkout repo
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ inputs.repo }}
+          path: source
+          ref: ${{ inputs.repo_commit_id || inputs.branch_name }}
+
+          
+
+      - name: Setup yq
+        uses: mikefarah/yq@v4
+
+      - name: Load environment config
+        id: env
+        run: |
+          ENV="${{ inputs.environment }}"
+          CONFIG="cd/config/env-map.yaml"
+
+          CLUSTER=$(yq ".${ENV}.cluster" "$CONFIG")
+          DNS_ZONE=$(yq ".${ENV}.dns_zone" "$CONFIG")
+          NAMESPACE=$(yq ".${ENV}.namespace" "$CONFIG")
+
+          echo "cluster=$CLUSTER" >> "$GITHUB_OUTPUT"
+          echo "dns_zone=$DNS_ZONE" >> "$GITHUB_OUTPUT"
+          echo "namespace=$NAMESPACE" >> "$GITHUB_OUTPUT"
+
+      - name: Export CD_PATH
+        id: cdpath
+        run: |
+          CD_PATH="continuous-deployment/${{ steps.env.outputs.cluster }}/${{ steps.env.outputs.namespace }}/${{ inputs.application }}"
+          echo "CD_PATH=$CD_PATH" >> "$GITHUB_ENV"
+          echo "cd_path=$CD_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Template manifest files with envsubst
+        uses: nowactions/envsubst@v1
+        with:
+          input: source/${{ inputs.source_path }}
+          output: source/${{ inputs.source_path }}
+        env:
+          CLUSTER_NAME: ${{ steps.env.outputs.cluster }}
+          DNS_ZONE: ${{ steps.env.outputs.dns_zone }}
+          NAMESPACE: ${{ steps.env.outputs.namespace }}
+          APPLICATION: ${{ inputs.application }}
+
+      - name: Checkout continuous-deployment repo
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ github.repository_owner }}/continuous-deployment
+          path: cd
+    
+
+      - name: Copy templated files to CD_PATH
+        run: |
+          mkdir -p cd/${{ env.CD_PATH }}
+          cp -r source/${{ inputs.source_path }}/* cd/${{ env.CD_PATH }}/
+
+      - name: Setup Kustomize
+        uses: imranismail/setup-kustomize@v2
+        with:
+          kustomize-version: ${{ inputs.kustomize_version }}
+
+      - name: Patch image tag(s) if provided
+        if: ${{ inputs.image_tag != '' }}
+        run: |
+          cd cd/${{ env.CD_PATH }}
+          echo "Setting image tag to ${{ inputs.image_tag }}"
+
+          if [ -n "${{ inputs.image_base_name }}" ]; then
+            echo "Using image_base_name: ${{ inputs.image_base_name }}"
+            kustomize edit set image "${{ inputs.image_base_name }}=*:${{ inputs.image_tag }}"
+          fi
+
+          if [ -n "${{ inputs.image_base_names }}" ]; then
+            for name in "${{ inputs.image_base_names[@] }}"; do
+              echo "Setting image tag for $name"
+              kustomize edit set image "$name=*:${{ inputs.image_tag }}"
+            done
+          fi
+
+
+      - name: Run kustomize build
+        id: kustomize
+        run: |
+          cd cd/${{ env.CD_PATH }}
+          kustomize build . > ../../../build-output.yaml
+
+      - name: Upload built manifest as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: built-kustomize-manifest
+          path: build-output.yaml
+
+      - name: Upload templated source manifests as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: templated-source-manifests
+          path: source/${{ inputs.source_path }}
+
+      - name: Commit and push to continuous-deployment repo
+        run: |
+          cd cd
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add "${{ env.CD_PATH }}"
+          git commit -m "Deploy ${{ inputs.application }} to ${{ steps.env.outputs.cluster }}/${{ steps.env.outputs.namespace }}"
+          git push
+
+
+     - name:  Sync ArgoCD app via REST API
+        id: env
+        run: |
+          CLUSTER="${{ steps.env.outputs.cluster }}"
+          NAMESPACE="${{ steps.env.outputs.namespace }}"
+          DNS_ZONE="${{ steps.env.outputs.dns_zone }}"
+          APP_NAME="${{ inputs.application }}-${{ steps.env.outputs.cluster }}-${{ steps.env.outputs.namespace }}"
+          ARGOCD_URL="https://${CLUSTER}-argocd-argocd-web-ui.${DNS_ZONE}"
+          SYNC_URL="$ARGOCD_URL/api/v1/applications/$APP_NAME/sync"
+          STATUS_URL="$ARGOCD_URL/api/v1/applications/$APP_NAME"
+
+          echo "Syncing ArgoCD app $APP_NAME using $ARGOCD_URL..."
+          curl -X POST "$SYNC_URL" \
+            -H "Content-Type: application/json" \
+            -u "${{ secrets.ARGO_CD_ADMIN_USER }}:${{ secrets.ARGO_CD_ADMIN_PASSWORD }}" \
+            -d '{}'
+
+          echo "Waiting for sync to complete..."
+          for i in {1..12}; do
+            STATUS=$(curl -s -u "${{ secrets.ArgoCDAdminUser }}:${{ secrets.ArgoCDAdminPassword }}" "$STATUS_URL" | jq -r '.status.sync.status')
+            echo "Current sync status: $STATUS"
+            if [ "$STATUS" = "Synced" ]; then
+              echo "ArgoCD sync completed."
+              exit 0
+            fi
+            sleep 10
+          done
+
+          echo "ArgoCD sync did not complete in time."
+          exit 1
+
+
+
+
+
+
+   
