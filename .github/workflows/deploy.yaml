@@ -76,7 +76,14 @@ jobs:
         path: source
         ref: ${{ inputs.repo_commit_id != '' && inputs.repo_commit_id || inputs.branch_name }}
 
-        
+
+    - name: Checkout continuous-deployment repo
+      uses: actions/checkout@v3
+      with:
+        repository: ${{ github.repository_owner }}/continuous-deployment
+        path: cd
+
+
     - name: Install yq and envsubst
       run: |
         sudo apt-get update
@@ -125,11 +132,7 @@ jobs:
           done
 
 
-    - name: Checkout continuous-deployment repo
-      uses: actions/checkout@v3
-      with:
-        repository: ${{ github.repository_owner }}/continuous-deployment
-        path: cd
+
   
 
     - name: Copy templated files to CD_PATH
