@@ -137,11 +137,13 @@ jobs:
         fi
 
         if [ -n "${{ inputs.image_base_names }}" ]; then
-          for name in "${{ inputs.image_base_names[@] }}"; do
+          IFS=',' read -ra IMAGE_NAMES <<< "${{ inputs.image_base_names }}"
+          for name in "${IMAGE_NAMES[@]}"; do
             echo "Setting image tag for $name"
             kustomize edit set image "$name=*:${{ inputs.image_tag }}"
           done
         fi
+
 
 
     - name: Run kustomize build
