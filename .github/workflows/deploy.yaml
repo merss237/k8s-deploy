@@ -80,11 +80,12 @@ jobs:
     - name: Install yq and envsubst
       run: |
         sudo apt-get update
-        sudo apt-get install -y gettext
+        sudo apt-get install -y gettext curl
         YQ_VERSION="v4.40.5"
-        wget -q "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" -O yq
+        curl -sL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" -o yq
         chmod +x yq
         sudo mv yq /usr/local/bin/yq
+
 
 
     - name: Load environment config
