@@ -71,7 +71,7 @@ jobs:
         with:
           repository: ${{ inputs.repo }}
           path: source
-          ref: ${{ inputs.repo_commit_id || inputs.branch_name }}
+          ref: ${{ inputs.repo_commit_id != '' && inputs.repo_commit_id || inputs.branch_name }}
 
           
 
