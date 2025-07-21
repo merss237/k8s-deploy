@@ -62,6 +62,10 @@ on:
         required: true
       ARGO_CD_ADMIN_PASSWORD:
         required: true
+      GH_APP_ID:
+        required: true
+      GH_APP_PRIVATE_KEY:
+        required: true
 
 jobs:
   deploy:
@@ -77,11 +81,6 @@ jobs:
         ref: ${{ inputs.repo_commit_id != '' && inputs.repo_commit_id || inputs.branch_name }}
 
 
-    - name: Checkout continuous-deployment repo
-      uses: actions/checkout@v3
-      with:
-        repository: ${{ github.repository_owner }}/continuous-deployment
-        path: cd
 
 
     - name: Install yq and envsubst
@@ -93,6 +92,20 @@ jobs:
         chmod +x yq
         sudo mv yq /usr/local/bin/yq
 
+    - name: Generate GitHub App token
+      id: generate_token
+      uses: tibdex/github-app-token@v1
+      with:
+        app_id: ${{ secrets.GH_APP_ID }}
+        private_key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+
+
+    - name: Checkout continuous-deployment repo
+      uses: actions/checkout@v3
+      with:
+        repository: ${{ github.repository_owner }}/continuous-deployment
+        token: ${{ steps.generate_token.outputs.token }}
+        path: cd
 
 
     - name: Load environment config
