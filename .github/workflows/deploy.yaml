@@ -180,7 +180,7 @@ jobs:
 
 
     - name:  Sync ArgoCD app via REST API
-      id: env
+      id: argosync
       run: |
         CLUSTER="${{ steps.env.outputs.cluster }}"
         NAMESPACE="${{ steps.env.outputs.namespace }}"
