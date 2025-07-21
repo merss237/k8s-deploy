@@ -77,9 +77,15 @@ jobs:
         ref: ${{ inputs.repo_commit_id != '' && inputs.repo_commit_id || inputs.branch_name }}
 
         
+    - name: Install yq and envsubst
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gettext
+        YQ_VERSION="v4.40.5"
+        wget -q "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" -O yq
+        chmod +x yq
+        sudo mv yq /usr/local/bin/yq
 
-    - name: Setup yq
-      uses: mikefarah/yq@v4
 
     - name: Load environment config
       id: env
@@ -103,15 +109,20 @@ jobs:
         echo "cd_path=$CD_PATH" >> "$GITHUB_OUTPUT"
 
     - name: Template manifest files with envsubst
-      uses: nowactions/envsubst@v1
-      with:
-        input: source/${{ inputs.source_path }}
-        output: source/${{ inputs.source_path }}
-      env:
-        CLUSTER_NAME: ${{ steps.env.outputs.cluster }}
-        DNS_ZONE: ${{ steps.env.outputs.dns_zone }}
-        NAMESPACE: ${{ steps.env.outputs.namespace }}
-        APPLICATION: ${{ inputs.application }}
+      run: |
+        export CLUSTER_NAME="${{ steps.env.outputs.cluster }}"
+        export DNS_ZONE="${{ steps.env.outputs.dns_zone }}"
+        export NAMESPACE="${{ steps.env.outputs.namespace }}"
+        export APPLICATION="${{ inputs.application }}"
+
+        find source/${{ inputs.source_path }} \( -name '*.yaml' -o -name '*.yml' -o -name '*.json' \) -type f -print0 |
+          while IFS= read -r -d '' file; do
+            if grep -q '\${' "$file"; then
+              echo "Templating $file"
+              envsubst < "$file" > "$file.tmp" && mv "$file.tmp" "$file"
+            fi
+          done
+
 
     - name: Checkout continuous-deployment repo
       uses: actions/checkout@v3
