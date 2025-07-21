@@ -23,6 +23,8 @@ This reusable GitHub Actions workflow deploys a Kubernetes application by render
 | `image_base_names`  | ❌        | array  | Multiple image base names to patch                                         |
 | `kustomize_version` | ❌        | string | Kustomize version (default: `5.0.1`)                                       |
 | `skip_status_check` | ❌        | string | If `true`, skips waiting for ArgoCD sync to complete. Only confirms sync was accepted. |
+| `runner`            | ❌        | string | Runner label to execute the workflow on (e.g. `ubuntu-latest`, `self-hosted`) |
+
 
 ---
 

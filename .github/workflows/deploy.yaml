@@ -10,6 +10,10 @@
 on:
   workflow_call:
     inputs:
+      runner:
+        required: false
+        type: string
+        default: ubuntu-latest
       environment:
         required: true
         type: string
@@ -56,7 +60,7 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner }}
     outputs:
       cd_path: ${{ steps.cdpath.outputs.cd_path }}
     steps:
