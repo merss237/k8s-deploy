@@ -129,7 +129,7 @@ To improve performance and avoid unnecessary substitutions, the workflow only te
 
 
 
-These values are injected by the workflow using the [`nowactions/envsubst`](https://github.com/nowactions/envsubst) action, based on your workflow inputs and values resolved from `env-map.yaml`.
+These values are injected by the workflow using envsubst, based on your workflow inputs and values resolved from `env-map.yaml`.
 
 > This approach allows you to reuse the same Kubernetes manifests across multiple environments, dynamically substituting names, hostnames, and namespaces to reflect the target cluster configuration.
 
