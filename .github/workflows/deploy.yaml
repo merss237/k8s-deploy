@@ -48,6 +48,11 @@ on:
         required: false
         type: string
         default: "5.0.1"
+      skip_status_check:
+        description: 'If true, skip waiting for ArgoCD sync to complete'
+        required: false
+        default: 'false'
+
 
 jobs:
   deploy:
@@ -177,10 +182,25 @@ jobs:
           STATUS_URL="$ARGOCD_URL/api/v1/applications/$APP_NAME"
 
           echo "Syncing ArgoCD app $APP_NAME using $ARGOCD_URL..."
-          curl -X POST "$SYNC_URL" \
+
+          HTTP_RESPONSE=$(curl -s -w "%{http_code}" -o /tmp/curl_sync_response.txt \
+            -X POST "$SYNC_URL" \
             -H "Content-Type: application/json" \
             -u "${{ secrets.ARGO_CD_ADMIN_USER }}:${{ secrets.ARGO_CD_ADMIN_PASSWORD }}" \
-            -d '{}'
+            -d '{}')
+
+          if [ "$HTTP_RESPONSE" -ne 200 ] && [ "$HTTP_RESPONSE" -ne 201 ]; then
+            echo "Failed to trigger sync. HTTP response code: $HTTP_RESPONSE"
+            cat /tmp/curl_sync_response.txt
+            exit 1
+          fi
+
+          echo "Sync successfully triggered. ArgoCD accepted the sync request."
+
+          if [[ "${{ inputs.skip_status_check }}" == "true" ]]; then
+            echo "Skipping ArgoCD sync status check. Assuming sync was accepted."
+            exit 0
+          fi
 
           echo "Waiting for sync to complete..."
           for i in {1..12}; do

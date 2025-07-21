@@ -8,20 +8,21 @@ This reusable GitHub Actions workflow deploys a Kubernetes application by render
 
 ## 🔧 Inputs
 
-| Name              | Required | Type   | Description |
-|-------------------|----------|--------|-------------|
-| `environment`     | ✅        | string | Environment name (e.g. `dev`, `prod`) |
-| `application`     | ✅        | string | Application name |
-| `namespace`       | ✅        | string | Kubernetes namespace to deploy into |
-| `repo`            | ✅        | string | GitHub repo where source manifests live (e.g. `my-org/my-app`) |
-| `repo_path`       | ✅        | string | Subdirectory in the repo containing manifests (e.g. `manifests/`) |
-| `repo_commit_id`  | ❌        | string | Commit ID to checkout (takes precedence over branch if both set) |
-| `branch_name`     | ❌        | string | Branch to checkout (default: `main`) |
-| `overlay_dir`     | ✅        | string | Path to the kustomize overlay directory within the repo |
-| `image_tag`       | ❌        | string | Optional image tag to set on one or more container images |
-| `image_base_name` | ❌        | string | Single image base name to patch (e.g. `my-app`) |
-| `image_base_names`| ❌        | array  | Multiple image base names to patch |
-| `kustomize_version` | ❌      | string | Kustomize version (default: `5.0.1`) |
+| Name                | Required | Type   | Description                                                                 |
+|---------------------|----------|--------|-----------------------------------------------------------------------------|
+| `environment`       | ✅        | string | Environment name (e.g. `dev`, `prod`)                                       |
+| `application`       | ✅        | string | Application name                                                            |
+| `namespace`         | ✅        | string | Kubernetes namespace to deploy into                                         |
+| `repo`              | ✅        | string | GitHub repo where source manifests live (e.g. `my-org/my-app`)             |
+| `repo_path`         | ✅        | string | Subdirectory in the repo containing manifests (e.g. `manifests/`)          |
+| `repo_commit_id`    | ❌        | string | Commit ID to checkout (takes precedence over branch if both set)           |
+| `branch_name`       | ❌        | string | Branch to checkout (default: `main`)                                       |
+| `overlay_dir`       | ✅        | string | Path to the kustomize overlay directory within the repo                    |
+| `image_tag`         | ❌        | string | Optional image tag to set on one or more container images                  |
+| `image_base_name`   | ❌        | string | Single image base name to patch (e.g. `my-app`)                            |
+| `image_base_names`  | ❌        | array  | Multiple image base names to patch                                         |
+| `kustomize_version` | ❌        | string | Kustomize version (default: `5.0.1`)                                       |
+| `skip_status_check` | ❌        | string | If `true`, skips waiting for ArgoCD sync to complete. Only confirms sync was accepted. |
 
 ---
 
@@ -33,6 +34,20 @@ These secrets must be defined in the calling repository:
 |------------------------|-------------|
 | `ARGO_CD_ADMIN_USER`   | ArgoCD admin username |
 | `ARGO_CD_ADMIN_PASSWORD` | ArgoCD admin password |
+
+---
+
+## 🔧 Actions Used
+
+The `gitopsmanager` reusable workflow uses the following GitHub Actions:
+
+| Action                                                                 | Version | Description                                                                 |
+|------------------------------------------------------------------------|---------|-----------------------------------------------------------------------------|
+| ![Checkout](https://img.shields.io/badge/actions--checkout-v4-blue?logo=github) [actions/checkout](https://github.com/actions/checkout) | `v4` | Checks out the repository so workflow jobs can access its contents. |
+| ![Envsubst](https://img.shields.io/badge/envsubst-v1-blue?logo=gnu) [nowactions/envsubst](https://github.com/nowactions/envsubst) | `v1` | Substitutes environment variables in files using the `envsubst` CLI. |
+| ![Kustomize](https://img.shields.io/badge/setup--kustomize-v2-blue?logo=kubernetes) [imranismail/setup-kustomize](https://github.com/imranismail/setup-kustomize) | `v2` | Sets up Kustomize CLI for building Kubernetes manifests. |
+| ![Artifact](https://img.shields.io/badge/upload--artifact-v4-blue?logo=github) [actions/upload-artifact](https://github.com/actions/upload-artifact) | `v4` | Uploads generated workflow artifacts (e.g., rendered YAML files). |
+| ![YQ](https://img.shields.io/badge/yq-v4-blue?logo=yaml) [mikefarah/yq](https://github.com/mikefarah/yq) | `v4` | Installs the `yq` YAML processor for working with manifests. |
 
 ---
 
