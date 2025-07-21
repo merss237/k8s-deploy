@@ -46,10 +46,8 @@ The `gitopsmanager` reusable workflow uses the following GitHub Actions:
 | Action                                                                 | Version | Description                                                                 |
 |------------------------------------------------------------------------|---------|-----------------------------------------------------------------------------|
 | ![Checkout](https://img.shields.io/badge/actions--checkout-v4-blue?logo=github) [actions/checkout](https://github.com/actions/checkout) | `v4` | Checks out the repository so workflow jobs can access its contents. |
-| ![Envsubst](https://img.shields.io/badge/envsubst-v1-blue?logo=gnu) [nowactions/envsubst](https://github.com/nowactions/envsubst) | `v1` | Substitutes environment variables in files using the `envsubst` CLI. |
 | ![Kustomize](https://img.shields.io/badge/setup--kustomize-v2-blue?logo=kubernetes) [imranismail/setup-kustomize](https://github.com/imranismail/setup-kustomize) | `v2` | Sets up Kustomize CLI for building Kubernetes manifests. |
-| ![Artifact](https://img.shields.io/badge/upload--artifact-v4-blue?logo=github) [actions/upload-artifact](https://github.com/actions/upload-artifact) | `v4` | Uploads generated workflow artifacts (e.g., rendered YAML files). |
-| ![YQ](https://img.shields.io/badge/yq-v4-blue?logo=yaml) [mikefarah/yq](https://github.com/mikefarah/yq) | `v4` | Installs the `yq` YAML processor for working with manifests. |
+| ![Artifact](https://img.shields.io/badge/upload--artifact-v4-blue?logo=github) [actions/upload-artifact](https://github.com/actions/upload-artifact) | `v4` | Uploads generated workflow
 
 ---
 
@@ -124,6 +122,13 @@ metadata:
 spec:
   rules:
 ```
+To improve performance and avoid unnecessary substitutions, the workflow only templates files that:
+
+- Have one of the extensions: `.yaml`, `.yml`, or `.json`
+- Contain the pattern `${` (indicating they use environment variable placeholders)
+
+
+
 These values are injected by the workflow using the [`nowactions/envsubst`](https://github.com/nowactions/envsubst) action, based on your workflow inputs and values resolved from `env-map.yaml`.
 
 > This approach allows you to reuse the same Kubernetes manifests across multiple environments, dynamically substituting names, hostnames, and namespaces to reflect the target cluster configuration.
