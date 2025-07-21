@@ -47,7 +47,7 @@ on:
         type: string
       image_base_names:
         required: false
-        type: array
+        type: string
       kustomize_version:
         required: false
         type: string
@@ -56,7 +56,7 @@ on:
         description: 'If true, skip waiting for ArgoCD sync to complete'
         required: false
         default: 'false'
-
+        type: string
 
 jobs:
   deploy:
