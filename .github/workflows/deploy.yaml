@@ -158,13 +158,13 @@ jobs:
         kustomize build . > ../../../build-output.yaml
 
     - name: Upload built manifest as artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: built-kustomize-manifest
         path: build-output.yaml
 
     - name: Upload templated source manifests as artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: templated-source-manifests
         path: source/${{ inputs.source_path }}
