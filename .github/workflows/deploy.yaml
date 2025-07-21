@@ -57,6 +57,11 @@ on:
         required: false
         default: 'false'
         type: string
+    secrets:
+      ARGO_CD_ADMIN_USER:
+        required: true
+      ARGO_CD_ADMIN_PASSWORD:
+        required: true
 
 jobs:
   deploy:
