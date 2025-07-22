@@ -300,8 +300,8 @@ jobs:
         }
       }
     }
-    EOF
-    )
+EOF
+)
 
         CREATE_RESPONSE=$(curl -s -w "%{http_code}" -o /tmp/argocd_create_resp.txt \
           -X POST "$ARGOCD_URL/api/v1/applications" \
