@@ -183,7 +183,7 @@ jobs:
     - name: Run kustomize build
       id: kustomize
       run: |
-        cd cd/${{ env.CD_PATH }}
+        cd cd/${{ env.CD_PATH }}/overlays/${{ inputs.overlay_dir }}
         kustomize build . > ../../../build-output.yaml
 
     - name: Upload built manifest as artifact
