@@ -108,6 +108,13 @@ jobs:
         repository: ${{ inputs.cd_repo }}
 
 
+    - name: Checkout reusable workflow repo
+      uses: actions/checkout@v4
+      with:
+        repository: gitopsmanager/k8s-deploy
+        path: reusable
+
+
     - name: Checkout continuous-deployment repo
       uses: actions/checkout@v3
       with:
@@ -250,7 +257,7 @@ jobs:
         echo "status_url=$STATUS_URL" >> "$GITHUB_OUTPUT"
 
 
-    - name: Check or create app in ArgoCD
+    - name: Check or create ArgoCD application
       id: ensure_app
       run: |
         APP_NAME="${{ steps.argocd_vars.outputs.app_name }}"
@@ -258,7 +265,7 @@ jobs:
         STATUS_URL="${{ steps.argocd_vars.outputs.status_url }}"
         CD_REPO="${{ inputs.repo }}"
         CD_PATH="${{ env.CD_PATH }}/${{ inputs.repo_path }}/overlays/${{ inputs.overlay_dir }}"
-        NAMESPACE="${{ steps.argocd_vars.outputs.namespace }}"
+        NAMESPACE="${{ inputs.namespace }}"
 
         echo "Checking if ArgoCD app $APP_NAME exists..."
 
@@ -277,37 +284,26 @@ jobs:
           exit 1
         fi
 
-        echo "⚠️ App not found. Creating $APP_NAME in ArgoCD..."
+        echo "⚠️ App not found. Rendering and creating $APP_NAME in ArgoCD..."
 
-        CREATE_PAYLOAD=$(cat <<EOF
-    {
-      "metadata": {
-        "name": "$APP_NAME"
-      },
-      "spec": {
-        "project": "default",
-        "source": {
-          "repoURL": "https://github.com/$CD_REPO",
-          "path": "$CD_PATH",
-          "targetRevision": "main"
-        },
-        "destination": {
-          "server": "https://kubernetes.default.svc",
-          "namespace": "$NAMESPACE"
-        },
-        "syncPolicy": {
-          "automated": null
-        }
-      }
-    }
-EOF
-)
+        # Set variables for envsubst
+        export APP_NAME
+        export CD_REPO
+        export CD_PATH
+        export NAMESPACE
 
+        # Render template
+        envsubst < reusable/templates/argocd-application-template.yaml > rendered-app.yaml
+
+        echo "✅ Rendered ArgoCD app YAML:"
+        cat rendered-app.yaml
+
+        # Submit to ArgoCD
         CREATE_RESPONSE=$(curl -s -w "%{http_code}" -o /tmp/argocd_create_resp.txt \
           -X POST "$ARGOCD_URL/api/v1/applications" \
-          -H "Content-Type: application/json" \
+          -H "Content-Type: application/yaml" \
           -u "${{ secrets.ARGO_CD_ADMIN_USER }}:${{ secrets.ARGO_CD_ADMIN_PASSWORD }}" \
-          -d "$CREATE_PAYLOAD")
+          --data-binary @rendered-app.yaml)
 
         if [[ "$CREATE_RESPONSE" -ne 200 && "$CREATE_RESPONSE" -ne 201 ]]; then
           echo "❌ Failed to create ArgoCD app. HTTP $CREATE_RESPONSE"
@@ -316,6 +312,10 @@ EOF
         fi
 
         echo "✅ ArgoCD app $APP_NAME successfully created."
+
+
+
+
 
 
 
