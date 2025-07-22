@@ -14,6 +14,9 @@ on:
         required: false
         type: string
         default: ubuntu-latest
+      cd_repo:
+        required: true
+        type: string
       environment:
         required: true
         type: string
@@ -102,12 +105,13 @@ jobs:
       with:
         app_id: ${{ secrets.CONTINUOUS_DEPLOYMENT_GH_APP_ID }}
         private_key: ${{ secrets.CONTINUOUS_DEPLOYMENT_GH_APP_PRIVATE_KEY }}
+        repositories: ${{ inputs.cd_repo }}
 
 
     - name: Checkout continuous-deployment repo
       uses: actions/checkout@v3
       with:
-        repository: ${{ github.repository_owner }}/continuous-deployment
+        repository: ${{ inputs.cd_repo }}
         token: ${{ steps.generate_token.outputs.token }}
         path: cd
 
