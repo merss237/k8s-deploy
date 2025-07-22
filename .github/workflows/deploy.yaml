@@ -105,7 +105,7 @@ jobs:
       with:
         app_id: ${{ secrets.CONTINUOUS_DEPLOYMENT_GH_APP_ID }}
         private_key: ${{ secrets.CONTINUOUS_DEPLOYMENT_GH_APP_PRIVATE_KEY }}
-        repositories: ${{ inputs.cd_repo }}
+        repository: ${{ inputs.cd_repo }}
 
 
     - name: Checkout continuous-deployment repo
