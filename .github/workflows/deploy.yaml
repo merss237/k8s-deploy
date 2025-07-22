@@ -114,9 +114,10 @@ jobs:
         ENV="${{ inputs.environment }}"
         CONFIG="cd/config/env-map.yaml"
 
-        CLUSTER=$(yq ".${ENV}.cluster" "$CONFIG")
-        DNS_ZONE=$(yq ".${ENV}.dns_zone" "$CONFIG")
-        NAMESPACE=$(yq ".${ENV}.namespace" "$CONFIG")
+        CLUSTER=$(yq ".[\"${ENV}\"].cluster" "$CONFIG")
+        DNS_ZONE=$(yq ".[\"${ENV}\"].dns_zone" "$CONFIG")
+        NAMESPACE=$(yq ".[\"${ENV}\"].namespace" "$CONFIG")
+
 
         echo "cluster=$CLUSTER" >> "$GITHUB_OUTPUT"
         echo "dns_zone=$DNS_ZONE" >> "$GITHUB_OUTPUT"
