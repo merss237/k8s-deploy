@@ -320,16 +320,18 @@ jobs:
 
         export APP_NAME CD_REPO CD_PATH NAMESPACE
 
-        envsubst < reusable/templates/argocd-application-template.yaml > rendered-app.yaml
+        # Replace YAML with JSON template
+        envsubst < reusable/templates/argocd-application-template.json > rendered-app.json
 
-        echo "✅ Rendered ArgoCD app YAML:"
-        cat rendered-app.yaml
+        echo "✅ Rendered ArgoCD app JSON:"
+        cat rendered-app.json
 
         CREATE_RESPONSE=$(curl $CURL_SSL_FLAGS -s -w "%{http_code}" -o /tmp/argocd_create_resp.txt \
           -X POST "$ARGOCD_URL/api/v1/applications" \
-          -H "Content-Type: application/yaml" \
+          -H "Content-Type: application/json" \
           -H "Authorization: Bearer $ARGOCD_TOKEN" \
-          --data-binary @rendered-app.yaml)
+          --data-binary @rendered-app.json)
+
 
         if [[ "$CREATE_RESPONSE" -ne 200 && "$CREATE_RESPONSE" -ne 201 ]]; then
           echo "❌ Failed to create ArgoCD app. HTTP $CREATE_RESPONSE"
