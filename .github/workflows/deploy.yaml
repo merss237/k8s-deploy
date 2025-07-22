@@ -126,7 +126,7 @@ jobs:
     - name: Export CD_PATH
       id: cdpath
       run: |
-        CD_PATH="continuous-deployment/${{ steps.env.outputs.cluster }}/${{ steps.env.outputs.namespace }}/${{ inputs.application }}"
+        CD_PATH="continuous-deployment/${{ steps.env.outputs.cluster }}/${{ inputs.namespace }}/${{ inputs.application }}"
         echo "CD_PATH=$CD_PATH" >> "$GITHUB_ENV"
         echo "cd_path=$CD_PATH" >> "$GITHUB_OUTPUT"
 
@@ -134,7 +134,7 @@ jobs:
       run: |
         export CLUSTER_NAME="${{ steps.env.outputs.cluster }}"
         export DNS_ZONE="${{ steps.env.outputs.dns_zone }}"
-        export NAMESPACE="${{ steps.env.outputs.namespace }}"
+        export NAMESPACE="${{ inputs.namespace }}"
         export APPLICATION="${{ inputs.application }}"
 
         find source/${{ inputs.source_path }} \( -name '*.yaml' -o -name '*.yml' -o -name '*.json' \) -type f -print0 |
