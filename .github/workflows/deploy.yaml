@@ -141,7 +141,7 @@ jobs:
         export NAMESPACE="${{ inputs.namespace }}"
         export APPLICATION="${{ inputs.application }}"
 
-        find source/${{ inputs.source_path }} \( -name '*.yaml' -o -name '*.yml' -o -name '*.json' \) -type f -print0 |
+        find source/${{ inputs.repo_path }} \( -name '*.yaml' -o -name '*.yml' -o -name '*.json' \) -type f -print0 |
           while IFS= read -r -d '' file; do
             if grep -q '\${' "$file"; then
               echo "Templating $file"
@@ -155,8 +155,11 @@ jobs:
 
     - name: Copy templated files to CD_PATH
       run: |
-        mkdir -p cd/${{ env.CD_PATH }}
-        cp -r source/${{ inputs.source_path }}/* cd/${{ env.CD_PATH }}/
+        TARGET="cd/${{ env.CD_PATH }}/${{ inputs.repo_path }}"
+        mkdir -p "$TARGET"
+        rm -rf "$TARGET"/*
+        cp -r source/${{ inputs.repo_path }}/* "$TARGET/"
+
 
     - name: Debug structure
       if: ${{ inputs.debug }}
@@ -208,7 +211,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: templated-source-manifests
-        path: source/${{ inputs.source_path }}
+        path: source/${{ inputs.repo_path }}
 
     - name: Commit and push to continuous-deployment repo
       env:
