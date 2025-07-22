@@ -316,9 +316,6 @@ jobs:
 
 
 
-
-
-
     - name:  Sync ArgoCD app via REST API
       id: argosync
       run: |
