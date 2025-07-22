@@ -243,7 +243,7 @@ jobs:
         CLUSTER="${{ steps.env.outputs.cluster }}"
         NAMESPACE="${{ inputs.namespace }}"
         DNS_ZONE="${{ steps.env.outputs.dns_zone }}"
-        APP_NAME="${NAMESPACE}-{{ inputs.application }}"
+        APP_NAME="${NAMESPACE}-${{ inputs.application }}"
         ARGOCD_URL="https://${CLUSTER}-argocd-argocd-web-ui.${DNS_ZONE}"
         SYNC_URL="${ARGOCD_URL}/api/v1/applications/${APP_NAME}/sync"
         STATUS_URL="${ARGOCD_URL}/api/v1/applications/${APP_NAME}"
