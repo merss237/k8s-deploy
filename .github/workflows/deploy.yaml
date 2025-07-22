@@ -60,6 +60,10 @@ on:
         required: false
         default: 'false'
         type: string
+      insecure_argo:
+        required: false
+        default: false
+        type: boolean
       debug:
         required: false
         type: boolean
@@ -73,6 +77,9 @@ on:
         required: true
       CONTINUOUS_DEPLOYMENT_GH_APP_PRIVATE_KEY:
         required: true
+      ARGOCD_CA_CERT:
+        required: false
+
 
 jobs:
   deploy:
@@ -267,9 +274,20 @@ jobs:
         CD_PATH="${{ env.CD_PATH }}/${{ inputs.repo_path }}/overlays/${{ inputs.overlay_dir }}"
         NAMESPACE="${{ inputs.namespace }}"
 
+        # Determine curl SSL flags
+        CURL_SSL_FLAGS=""
+        if [[ "${{ inputs.insecure_argo }}" == "true" ]]; then
+          echo "⚠️ Insecure ArgoCD connection: TLS verification disabled"
+          CURL_SSL_FLAGS="-k"
+        elif [[ -n "${{ secrets.ARGOCD_CA_CERT }}" ]]; then
+          echo "🔒 Using provided CA certificate for ArgoCD TLS validation"
+          echo "${{ secrets.ARGOCD_CA_CERT }}" > /tmp/argocd-ca.crt
+          CURL_SSL_FLAGS="--cacert /tmp/argocd-ca.crt"
+        fi
+
         echo "Checking if ArgoCD app $APP_NAME exists..."
 
-        HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+        HTTP_STATUS=$(curl $CURL_SSL_FLAGS -s -o /dev/null -w "%{http_code}" \
           -u "${{ secrets.ARGO_CD_ADMIN_USER }}:${{ secrets.ARGO_CD_ADMIN_PASSWORD }}" \
           "$STATUS_URL")
 
@@ -299,7 +317,7 @@ jobs:
         cat rendered-app.yaml
 
         # Submit to ArgoCD
-        CREATE_RESPONSE=$(curl -s -w "%{http_code}" -o /tmp/argocd_create_resp.txt \
+        CREATE_RESPONSE=$(curl $CURL_SSL_FLAGS -s -w "%{http_code}" -o /tmp/argocd_create_resp.txt \
           -X POST "$ARGOCD_URL/api/v1/applications" \
           -H "Content-Type: application/yaml" \
           -u "${{ secrets.ARGO_CD_ADMIN_USER }}:${{ secrets.ARGO_CD_ADMIN_PASSWORD }}" \
@@ -314,12 +332,9 @@ jobs:
         echo "✅ ArgoCD app $APP_NAME successfully created."
 
 
-
-
-    - name:  Sync ArgoCD app via REST API
+    - name: Sync ArgoCD app via REST API
       id: argosync
       run: |
-
         APP_NAME="${{ steps.argocd_vars.outputs.app_name }}"
         ARGOCD_URL="${{ steps.argocd_vars.outputs.argocd_url }}"
         STATUS_URL="${{ steps.argocd_vars.outputs.status_url }}"
@@ -328,39 +343,52 @@ jobs:
         CD_PATH="${{ env.CD_PATH }}/${{ inputs.repo_path }}/overlays/${{ inputs.overlay_dir }}"
         NAMESPACE="${{ steps.argocd_vars.outputs.namespace }}"
 
+        # Determine curl SSL flags
+        CURL_SSL_FLAGS=""
+        if [[ "${{ inputs.insecure_argo }}" == "true" ]]; then
+          echo "⚠️ Insecure ArgoCD connection: TLS verification disabled"
+          CURL_SSL_FLAGS="-k"
+        elif [[ -n "${{ secrets.ARGOCD_CA_CERT }}" ]]; then
+          echo "🔒 Using provided CA certificate for ArgoCD TLS validation"
+          echo "${{ secrets.ARGOCD_CA_CERT }}" > /tmp/argocd-ca.crt
+          CURL_SSL_FLAGS="--cacert /tmp/argocd-ca.crt"
+        fi
+
         echo "Syncing ArgoCD app $APP_NAME using $ARGOCD_URL..."
 
-        HTTP_RESPONSE=$(curl -s -w "%{http_code}" -o /tmp/curl_sync_response.txt \
+        HTTP_RESPONSE=$(curl $CURL_SSL_FLAGS -s -w "%{http_code}" -o /tmp/curl_sync_response.txt \
           -X POST "$SYNC_URL" \
           -H "Content-Type: application/json" \
           -u "${{ secrets.ARGO_CD_ADMIN_USER }}:${{ secrets.ARGO_CD_ADMIN_PASSWORD }}" \
           -d '{}')
 
         if [ "$HTTP_RESPONSE" -ne 200 ] && [ "$HTTP_RESPONSE" -ne 201 ]; then
-          echo "Failed to trigger sync. HTTP response code: $HTTP_RESPONSE"
+          echo "❌ Failed to trigger sync. HTTP response code: $HTTP_RESPONSE"
           cat /tmp/curl_sync_response.txt
           exit 1
         fi
 
-        echo "Sync successfully triggered. ArgoCD accepted the sync request."
+        echo "✅ Sync successfully triggered. ArgoCD accepted the sync request."
 
         if [[ "${{ inputs.skip_status_check }}" == "true" ]]; then
-          echo "Skipping ArgoCD sync status check. Assuming sync was accepted."
+          echo "⏭️ Skipping ArgoCD sync status check. Assuming sync was accepted."
           exit 0
         fi
 
-        echo "Waiting for sync to complete..."
+        echo "⏳ Waiting for sync to complete..."
         for i in {1..12}; do
-          STATUS=$(curl -s -u "${{ secrets.ArgoCDAdminUser }}:${{ secrets.ArgoCDAdminPassword }}" "$STATUS_URL" | jq -r '.status.sync.status')
+          STATUS=$(curl $CURL_SSL_FLAGS -s \
+            -u "${{ secrets.ARGO_CD_ADMIN_USER }}:${{ secrets.ARGO_CD_ADMIN_PASSWORD }}" \
+            "$STATUS_URL" | jq -r '.status.sync.status')
           echo "Current sync status: $STATUS"
           if [ "$STATUS" = "Synced" ]; then
-            echo "ArgoCD sync completed."
+            echo "✅ ArgoCD sync completed."
             exit 0
           fi
           sleep 10
         done
 
-        echo "ArgoCD sync did not complete in time."
+        echo "❌ ArgoCD sync did not complete in time."
         exit 1
 
 
@@ -368,4 +396,5 @@ jobs:
 
 
 
-  
+
+      
