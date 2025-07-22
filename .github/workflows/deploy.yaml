@@ -243,7 +243,6 @@ jobs:
         git commit -m "Deploy ${{ inputs.application }} to ${{ steps.env.outputs.cluster }}/${{ inputs.namespace }}"
         git push
 
-
     - name: Set ArgoCD variables
       id: argocd_vars
       run: |
@@ -255,6 +254,16 @@ jobs:
         SYNC_URL="${ARGOCD_URL}/api/v1/applications/${APP_NAME}/sync"
         STATUS_URL="${ARGOCD_URL}/api/v1/applications/${APP_NAME}"
 
+        # Get ArgoCD session token
+        TOKEN=$(curl -k -s -X POST "$ARGOCD_URL/api/v1/session" \
+          -H "Content-Type: application/json" \
+          -d "{\"username\":\"${{ secrets.ARGO_CD_ADMIN_USER }}\",\"password\":\"${{ secrets.ARGO_CD_ADMIN_PASSWORD }}\"}" | jq -r .token)
+
+        if [[ "$TOKEN" == "null" || -z "$TOKEN" ]]; then
+          echo "❌ Failed to get ArgoCD session token."
+          exit 1
+        fi
+
         echo "cluster=$CLUSTER" >> "$GITHUB_OUTPUT"
         echo "namespace=$NAMESPACE" >> "$GITHUB_OUTPUT"
         echo "dns_zone=$DNS_ZONE" >> "$GITHUB_OUTPUT"
@@ -262,6 +271,7 @@ jobs:
         echo "argocd_url=$ARGOCD_URL" >> "$GITHUB_OUTPUT"
         echo "sync_url=$SYNC_URL" >> "$GITHUB_OUTPUT"
         echo "status_url=$STATUS_URL" >> "$GITHUB_OUTPUT"
+        echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
 
 
     - name: Check or create ArgoCD application
@@ -273,6 +283,7 @@ jobs:
         CD_REPO="${{ inputs.repo }}"
         CD_PATH="${{ env.CD_PATH }}/${{ inputs.repo_path }}/overlays/${{ inputs.overlay_dir }}"
         NAMESPACE="${{ inputs.namespace }}"
+        ARGOCD_TOKEN="${{ steps.argocd_vars.outputs.token }}"
 
         # Determine curl SSL flags
         CURL_SSL_FLAGS=""
@@ -288,7 +299,7 @@ jobs:
         echo "Checking if ArgoCD app $APP_NAME exists..."
 
         HTTP_STATUS=$(curl $CURL_SSL_FLAGS -s -o /dev/null -w "%{http_code}" \
-          -u "${{ secrets.ARGO_CD_ADMIN_USER }}:${{ secrets.ARGO_CD_ADMIN_PASSWORD }}" \
+          -H "Authorization: Bearer $ARGOCD_TOKEN" \
           "$STATUS_URL")
 
         echo "http_status=$HTTP_STATUS" >> "$GITHUB_OUTPUT"
@@ -304,23 +315,17 @@ jobs:
 
         echo "⚠️ App not found. Rendering and creating $APP_NAME in ArgoCD..."
 
-        # Set variables for envsubst
-        export APP_NAME
-        export CD_REPO
-        export CD_PATH
-        export NAMESPACE
+        export APP_NAME CD_REPO CD_PATH NAMESPACE
 
-        # Render template
         envsubst < reusable/templates/argocd-application-template.yaml > rendered-app.yaml
 
         echo "✅ Rendered ArgoCD app YAML:"
         cat rendered-app.yaml
 
-        # Submit to ArgoCD
         CREATE_RESPONSE=$(curl $CURL_SSL_FLAGS -s -w "%{http_code}" -o /tmp/argocd_create_resp.txt \
           -X POST "$ARGOCD_URL/api/v1/applications" \
           -H "Content-Type: application/yaml" \
-          -u "${{ secrets.ARGO_CD_ADMIN_USER }}:${{ secrets.ARGO_CD_ADMIN_PASSWORD }}" \
+          -H "Authorization: Bearer $ARGOCD_TOKEN" \
           --data-binary @rendered-app.yaml)
 
         if [[ "$CREATE_RESPONSE" -ne 200 && "$CREATE_RESPONSE" -ne 201 ]]; then
@@ -342,6 +347,7 @@ jobs:
         CD_REPO="${{ inputs.repo }}"
         CD_PATH="${{ env.CD_PATH }}/${{ inputs.repo_path }}/overlays/${{ inputs.overlay_dir }}"
         NAMESPACE="${{ steps.argocd_vars.outputs.namespace }}"
+        ARGOCD_TOKEN="${{ steps.argocd_vars.outputs.token }}"
 
         # Determine curl SSL flags
         CURL_SSL_FLAGS=""
@@ -359,7 +365,7 @@ jobs:
         HTTP_RESPONSE=$(curl $CURL_SSL_FLAGS -s -w "%{http_code}" -o /tmp/curl_sync_response.txt \
           -X POST "$SYNC_URL" \
           -H "Content-Type: application/json" \
-          -u "${{ secrets.ARGO_CD_ADMIN_USER }}:${{ secrets.ARGO_CD_ADMIN_PASSWORD }}" \
+          -H "Authorization: Bearer $ARGOCD_TOKEN" \
           -d '{}')
 
         if [ "$HTTP_RESPONSE" -ne 200 ] && [ "$HTTP_RESPONSE" -ne 201 ]; then
@@ -378,7 +384,7 @@ jobs:
         echo "⏳ Waiting for sync to complete..."
         for i in {1..12}; do
           STATUS=$(curl $CURL_SSL_FLAGS -s \
-            -u "${{ secrets.ARGO_CD_ADMIN_USER }}:${{ secrets.ARGO_CD_ADMIN_PASSWORD }}" \
+            -H "Authorization: Bearer $ARGOCD_TOKEN" \
             "$STATUS_URL" | jq -r '.status.sync.status')
           echo "Current sync status: $STATUS"
           if [ "$STATUS" = "Synced" ]; then
@@ -394,7 +400,4 @@ jobs:
 
 
 
-
-
-
-      
+          
