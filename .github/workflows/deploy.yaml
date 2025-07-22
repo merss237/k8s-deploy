@@ -66,7 +66,7 @@ on:
         required: true
       ARGO_CD_ADMIN_PASSWORD:
         required: true
-      CONTINUOS_DEPLOYMENT_GH_APP_ID:
+      CONTINUOUS_DEPLOYMENT_GH_APP_ID:
         required: true
       CONTINUOUS_DEPLOYMENT_GH_APP_PRIVATE_KEY:
         required: true
