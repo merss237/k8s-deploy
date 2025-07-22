@@ -57,6 +57,10 @@ on:
         required: false
         default: 'false'
         type: string
+      debug:
+        required: false
+        type: boolean
+        default: false
     secrets:
       ARGO_CD_ADMIN_USER:
         required: true
@@ -155,9 +159,11 @@ jobs:
         cp -r source/${{ inputs.source_path }}/* cd/${{ env.CD_PATH }}/
 
     - name: Debug structure
+      if: ${{ inputs.debug }}
       run: |
-        echo "Expecting: cd/${{ env.CD_PATH }}/overlays/prod"
+        echo "Debug mode enabled. Showing contents of CD_PATH:"
         find cd/${{ env.CD_PATH }} || echo "Nothing copied!"
+
 
     - name: Setup Kustomize
       uses: imranismail/setup-kustomize@v2
@@ -167,7 +173,7 @@ jobs:
     - name: Patch image tag(s) if provided
       if: ${{ inputs.image_tag != '' }}
       run: |
-        cd cd/${{ env.CD_PATH }}
+        cd cd/${{ env.CD_PATH }}/${{ inputs.repo_path }}/overlays/${{ inputs.overlay_dir }}
         echo "Setting image tag to ${{ inputs.image_tag }}"
 
         if [ -n "${{ inputs.image_base_name }}" ]; then
@@ -185,10 +191,11 @@ jobs:
 
 
 
+
     - name: Run kustomize build
       id: kustomize
       run: |
-        cd cd/${{ env.CD_PATH }}/overlays/${{ inputs.overlay_dir }}
+        cd cd/${{ env.CD_PATH }}/${{ inputs.repo_path }}/overlays/${{ inputs.overlay_dir }}
         kustomize build . > ../../../build-output.yaml
 
     - name: Upload built manifest as artifact
