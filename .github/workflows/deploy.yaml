@@ -308,10 +308,13 @@ jobs:
         if [[ "$HTTP_STATUS" == "200" ]]; then
           echo "✅ ArgoCD app $APP_NAME already exists."
           exit 0
-        elif [[ "$HTTP_STATUS" != "404" ]]; then
+        elif [[ "$HTTP_STATUS" == "403" ]]; then
+          echo "ℹ️ ArgoCD app $APP_NAME does not exist or is inaccessible — continuing to create it."
+        else
           echo "❌ Unexpected response from ArgoCD (HTTP $HTTP_STATUS)"
           exit 1
         fi
+
 
         echo "⚠️ App not found. Rendering and creating $APP_NAME in ArgoCD..."
 
