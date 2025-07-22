@@ -124,7 +124,7 @@ jobs:
 
         CLUSTER=$(yq ".[\"${ENV}\"].cluster" "$CONFIG")
         DNS_ZONE=$(yq ".[\"${ENV}\"].dns_zone" "$CONFIG")
-        NAMESPACE=$(yq ".[\"${ENV}\"].namespace" "$CONFIG")
+        NAMESPACE="${{ inputs.namespace }}"
 
 
         echo "cluster=$CLUSTER" >> "$GITHUB_OUTPUT"
@@ -226,7 +226,7 @@ jobs:
         git config user.email "actions@github.com"
         git add "${{ env.CD_PATH }}//${{ inputs.repo_path }}/"
         git diff --cached --quiet && echo "No changes to commit" && exit 0
-        git commit -m "Deploy ${{ inputs.application }} to ${{ steps.env.outputs.cluster }}/${{ steps.env.outputs.namespace }}"
+        git commit -m "Deploy ${{ inputs.application }} to ${{ steps.env.outputs.cluster }}/${{ inputs.namespace }}"
         git push
 
 
@@ -234,9 +234,9 @@ jobs:
       id: argosync
       run: |
         CLUSTER="${{ steps.env.outputs.cluster }}"
-        NAMESPACE="${{ steps.env.outputs.namespace }}"
+        NAMESPACE="${{ inputs.namespace }}"
         DNS_ZONE="${{ steps.env.outputs.dns_zone }}"
-        APP_NAME="${{ inputs.application }}-${{ steps.env.outputs.cluster }}-${{ steps.env.outputs.namespace }}"
+        APP_NAME="${{ inputs.application }}-${{ steps.env.outputs.cluster }}-${{ inputs.namespace }}"
         ARGOCD_URL="https://${CLUSTER}-argocd-argocd-web-ui.${DNS_ZONE}"
         SYNC_URL="$ARGOCD_URL/api/v1/applications/$APP_NAME/sync"
         STATUS_URL="$ARGOCD_URL/api/v1/applications/$APP_NAME"
