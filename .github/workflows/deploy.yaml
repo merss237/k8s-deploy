@@ -66,9 +66,9 @@ on:
         required: true
       ARGO_CD_ADMIN_PASSWORD:
         required: true
-      GH_APP_ID:
+      CONTINUOS_DEPLOYMENT_GH_APP_ID:
         required: true
-      GH_APP_PRIVATE_KEY:
+      CONTINUOUS_DEPLOYMENT_GH_APP_PRIVATE_KEY:
         required: true
 
 jobs:
@@ -100,8 +100,8 @@ jobs:
       id: generate_token
       uses: tibdex/github-app-token@v1
       with:
-        app_id: ${{ secrets.GH_APP_ID }}
-        private_key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+        app_id: ${{ secrets.CONTINUOS_DEPLOYMENT_GH_APP_ID }}
+        private_key: ${{ secrets.CONTINUOUS_DEPLOYMENT_GH_APP_PRIVATE_KEY }}
 
 
     - name: Checkout continuous-deployment repo
@@ -211,11 +211,14 @@ jobs:
         path: source/${{ inputs.source_path }}
 
     - name: Commit and push to continuous-deployment repo
+      env:
+        GH_TOKEN: ${{ steps.app-auth.outputs.token }}
       run: |
         cd cd
         git config user.name "GitHub Actions"
         git config user.email "actions@github.com"
-        git add "${{ env.CD_PATH }}"
+        git add "${{ env.CD_PATH }}//${{ inputs.repo_path }}/"
+        git diff --cached --quiet && echo "No changes to commit" && exit 0
         git commit -m "Deploy ${{ inputs.application }} to ${{ steps.env.outputs.cluster }}/${{ steps.env.outputs.namespace }}"
         git push
 
